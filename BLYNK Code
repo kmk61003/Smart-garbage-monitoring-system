@@ -1,0 +1,66 @@
+#define BLYNK_TEMPLATE_ID "TMPL3mrdUVEL1"
+#define BLYNK_TEMPLATE_NAME "wastemanagement"
+#define BLYNK_AUTH_TOKEN "BQ_e5j_QbyoGie6SMoMexvwdVVpzG-Gy"
+
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+
+#define trig1 D2
+#define echo1 D1
+#define gasPin A0
+
+long duration1;
+int distance1;
+int binLevel1;
+int gasLevel;
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "Sarath_nani";
+char pass[] = "chandu@2003";
+
+BlynkTimer timer;
+WidgetLCD lcd(V1);
+
+void setup() {
+  pinMode(trig1, OUTPUT);
+  pinMode(echo1, INPUT);
+  pinMode(gasPin, INPUT);
+
+  Serial.begin(9600);
+  Blynk.begin(auth, ssid, pass);
+  timer.setInterval(1000L, sendSensors);
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}
+
+void sendSensors() {
+  readUltrasonicSensor(trig1, echo1, distance1, binLevel1);
+  readGasSensor(gasPin, gasLevel);
+
+  Blynk.virtualWrite(V3, distance1);
+  Blynk.virtualWrite(V4, binLevel1);
+  Blynk.virtualWrite(V5, gasLevel);
+  if(distance1 > 70 || gasLevel > 85){
+    Blynk.logEvent("dustbin_full", " Dustbin number 2 is full...Please collect the trash");
+  }
+}
+
+void readUltrasonicSensor(int trigPin, int echoPin, int& distance, int& binLevel) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration1 = pulseIn(echoPin, HIGH);
+  distance = duration1 * 0.034 / 2;
+  binLevel = map(distance, 21, 0, 0, 100);
+}
+
+void readGasSensor(int gasPin, int& gasLevel) {
+  gasLevel = analogRead(gasPin);
+  gasLevel = map(gasLevel, 0, 1024, 0, 100);
+}
